@@ -2289,6 +2289,213 @@ function initWechatModal() {
 }
 
 /* ───────────────────────── 12. 初始化 ───────────────────────── */
+/* ───────────────────────── 12. 背景音乐 / 点歌台 ───────────────────────── */
+const BGM = { audio: null, list: [], cur: -1, playing: false, loaded: false };
+
+/* —— 自动读取 Music/ 音乐库：按「歌名+歌手名」解析文件名 —— */
+function parseSongName(name) {
+  let title = name, artist = '';
+  const i = name.indexOf('+');
+  if (i > 0) { title = name.slice(0, i).trim(); artist = name.slice(i + 1).trim(); }
+  else {
+    const m = name.split(/[-–—_]/);
+    if (m.length >= 2) { title = m[0].trim(); artist = m.slice(1).join(' ').trim(); }
+  }
+  return { title: title || name, artist };
+}
+
+function fileToSong(path) {
+  const clean = decodeURIComponent(String(path).split('?')[0]);
+  const fname = clean.split('/').pop();
+  const base = fname.replace(/\.[^.]+$/, '');
+  const t = parseSongName(base);
+  return { title: t.title, artist: t.artist, src: 'Music/' + fname, tag: '' };
+}
+
+function dedupeMusic(list) {
+  const seen = {};
+  return list.filter(s => s.src && !seen[s.src] && (seen[s.src] = 1));
+}
+
+async function loadMusicLibrary() {
+  // 1) 直接读取 Music/ 目录列表（支持目录列表的服务器：新增歌曲自动识别）
+  try {
+    const res = await fetch('Music/');
+    if (res.ok) {
+      const html = await res.text();
+      const files = [...html.matchAll(/href=["']([^"']+?\.(?:mp3|m4a|ogg|wav))["']/gi)].map(m => m[1]);
+      const songs = dedupeMusic(files.map(fileToSong).filter(s => s.title));
+      if (songs.length) return songs;
+    }
+  } catch (e) { /* 目录列表不可用则维续 */ }
+  // 2) 读取 Music/index.json 清单（任何静态主机可用）
+  try {
+    const res = await fetch('Music/index.json');
+    if (res.ok) {
+      const arr = await res.json();
+      if (Array.isArray(arr) && arr.length) {
+        const songs = dedupeMusic(arr.map(x => typeof x === 'string' ? fileToSong(x)
+          : { title: x.title || '', artist: x.artist || '', src: x.src || ('Music/' + (x.file || '')), tag: x.tag || '' }).filter(s => s.src));
+        if (songs.length) return songs;
+      }
+    }
+  } catch (e) { /* 无清单则维续 */ }
+  // 3) 回退 data-music.js（file:// 直接打开可用）
+  return (typeof MUSIC !== 'undefined' && Array.isArray(MUSIC))
+    ? MUSIC.map(s => ({ title: s.title || '', artist: s.artist || '', src: s.src || '', tag: s.tag || '' })).filter(s => s.src)
+    : [];
+}
+
+function fmtTime(s) {
+  s = Math.max(0, Math.floor(s || 0));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+
+function playIndex(i) {
+  const list = BGM.list;
+  if (!list.length) { toast('歌单为空：请在 Music/ 文件夹放入歌曲，并在 data-music.js 登记'); return; }
+  BGM.cur = ((i % list.length) + list.length) % list.length;
+  const s = list[BGM.cur];
+  BGM.audio.src = s.src;
+  BGM.playing = true;              // 乐观置位，点击即刻反馈
+  syncBgmUI();
+  updateProgress();
+  BGM.audio.play().catch(() => { BGM.playing = false; syncBgmUI(); });
+}
+
+function playRandom() {
+  const n = BGM.list.length; if (!n) return;
+  let i = Math.floor(Math.random() * n), guard = 0;
+  while (n > 1 && i === BGM.cur && guard++ < 30) i = Math.floor(Math.random() * n);
+  playIndex(i);
+}
+
+function playNext() { if (BGM.list.length) playIndex(BGM.cur + 1); }
+function playPrev() { if (BGM.list.length) playIndex(BGM.cur - 1); }
+
+function toggleBgm() {
+  const a = BGM.audio;
+  if (!BGM.list.length) { toast('歌单为空：请在 Music/ 文件夹放入歌曲，并在 data-music.js 登记'); return; }
+  if (!a.paused) a.pause();
+  else if (BGM.cur >= 0 && a.src) {
+    BGM.playing = true; syncBgmUI();
+    a.play().catch(() => { BGM.playing = false; syncBgmUI(); });
+  }
+  else playRandom();
+}
+
+function updateProgress() {
+  const a = BGM.audio;
+  const bar = $('#jb-bar'), time = $('#jb-time');
+  const pct = a.duration ? (a.currentTime / a.duration * 100) : 0;
+  if (bar) bar.style.width = pct + '%';
+  if (time) time.textContent = fmtTime(a.currentTime) + ' / ' + fmtTime(a.duration || 0);
+}
+
+function syncBgmUI() {
+  const s = BGM.list[BGM.cur];
+  const btn = $('#btn-bgm');
+  if (btn) {
+    btn.classList.toggle('playing', BGM.playing);
+    btn.title = s ? (BGM.playing ? `正在播放：${s.title} · ${s.artist}（点击暂停）` : `已暂停：${s.title}（点击播放）`) : '播放背景音乐（随机）';
+  }
+  const now = $('#bgm-now');
+  if (now) {
+    if (s && BGM.playing) { now.hidden = false; now.textContent = `♪ ${s.title} · ${s.artist}`; }
+    else now.hidden = true;
+  }
+  const cover = $('#jb-cover');
+  if (cover) cover.classList.toggle('playing', BGM.playing);
+  const jt = $('#jb-title'), ja = $('#jb-artist'), jtog = $('#jb-toggle');
+  if (jt) jt.textContent = s ? s.title : '未在播放';
+  if (ja) ja.textContent = s ? s.artist : '点一首歌，或让诗镜随机为你选曲';
+  if (jtog) jtog.textContent = BGM.playing ? '⏸ 暂停' : '▶ 播放';
+  document.querySelectorAll('#jb-list .jb-item').forEach(el => {
+    const on = +el.getAttribute('data-idx') === BGM.cur;
+    el.classList.toggle('cur', on);
+    const pb = el.querySelector('.jb-item-play');
+    if (pb) pb.textContent = (on && BGM.playing) ? '⏸' : '▶';
+  });
+}
+
+function renderJukebox(filter) {
+  const box = $('#jb-list'); if (!box) return;
+  const q = (filter || '').trim().toLowerCase();
+  const items = BGM.list.map((s, i) => ({ s, i })).filter(({ s }) =>
+    !q || (s.title || '').toLowerCase().includes(q) || (s.artist || '').toLowerCase().includes(q) || (s.tag || '').toLowerCase().includes(q));
+  const count = $('#jb-count');
+  if (count) count.textContent = q ? `匹配 ${items.length} / ${BGM.list.length} 首` : `共 ${BGM.list.length} 首`;
+  if (!BGM.list.length) {
+    box.innerHTML = BGM.loaded
+      ? '<div class="jb-empty">音乐库为空。请将歌曲命名为「歌名+歌手名.mp3」放入 <b>Music/</b> 文件夹，再运行 <code>node tools/scan-music.js</code> 更新清单。</div>'
+      : '<div class="jb-empty">正在读取 Music/ 音乐库…</div>';
+    return;
+  }
+  if (!items.length) {
+    box.innerHTML = `<div class="jb-empty">没有匹配「${esc(filter)}」的歌曲。试试其它歌名 / 歌手名，或清空搜索。</div>`;
+    return;
+  }
+  box.innerHTML = items.map(({ s, i }) => `
+    <div class="jb-item" data-idx="${i}" data-play="${i}">
+      <button class="jb-item-play" title="播放 / 暂停">▶</button>
+      <div class="jb-item-meta">
+        <div class="jb-item-title">${esc(s.title)}</div>
+        <div class="jb-item-artist">${esc(s.artist || '未知')}${s.tag ? ' · ' + esc(s.tag) : ''}</div>
+      </div>
+      <div class="jb-item-no">${String(i + 1).padStart(2, '0')}</div>
+    </div>`).join('');
+  box.querySelectorAll('.jb-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const i = +el.getAttribute('data-play');
+      if (i === BGM.cur && !BGM.audio.paused) BGM.audio.pause();
+      else if (i === BGM.cur) {
+        BGM.playing = true; syncBgmUI();
+        BGM.audio.play().catch(() => { BGM.playing = false; syncBgmUI(); });
+      }
+      else playIndex(i);
+    });
+  });
+  syncBgmUI();
+}
+
+function initMusic() {
+  BGM.audio = new Audio();
+  BGM.audio.preload = 'metadata';
+  const vol = parseFloat(localStorage.getItem('shijing_bgm_vol'));
+  BGM.audio.volume = isNaN(vol) ? 0.6 : vol;
+  const a = BGM.audio;
+  a.addEventListener('ended', () => playNext());                 // 曲终自动下一首
+  a.addEventListener('error', () => { if (BGM.playing) playNext(); }); // 文件缺失自动跳过
+  a.addEventListener('timeupdate', updateProgress);
+  a.addEventListener('loadedmetadata', updateProgress);
+  a.addEventListener('play', () => { BGM.playing = true; syncBgmUI(); });
+  a.addEventListener('pause', () => { BGM.playing = false; syncBgmUI(); });
+
+  const btn = $('#btn-bgm'); if (btn) btn.onclick = toggleBgm;
+  renderJukebox('');   // 先渲染加载态
+  loadMusicLibrary().then(list => {
+    BGM.list = list;
+    BGM.loaded = true;
+    const search = $('#jb-search');
+    renderJukebox(search ? search.value : '');
+    syncBgmUI();
+  }).catch(() => { BGM.loaded = true; renderJukebox(''); });
+  const search = $('#jb-search');
+  if (search) search.addEventListener('input', () => renderJukebox(search.value));
+  const bind = (sel, fn) => { const el = $(sel); if (el) el.addEventListener('click', fn); };
+  bind('#jb-toggle', toggleBgm);
+  bind('#jb-next', playNext);
+  bind('#jb-prev', playPrev);
+  bind('#jb-random', playRandom);
+  const track = $('#jb-track');
+  if (track) track.addEventListener('click', e => {
+    if (!BGM.audio.duration) return;
+    const r = track.getBoundingClientRect();
+    BGM.audio.currentTime = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * BGM.audio.duration;
+  });
+  syncBgmUI();
+}
+
 function init() {
   // 导航
   $$('.nav-link, .brand').forEach(a => a.addEventListener('click', e => {
@@ -2446,6 +2653,7 @@ function init() {
   renderWriteExamples();
   writeHint();
   initWechatModal();
+  initMusic();
 
   updateStats();
 }
