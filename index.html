@@ -27,10 +27,18 @@
       <a href="#" class="nav-link" data-page="cipai">词牌查询</a>
       <a href="#" class="nav-link" data-page="poets">中国诗人</a>
       <a href="#" class="nav-link" data-page="dict">韵脚意象辞典</a>
+      <a href="#" class="nav-link" data-page="jukebox">点歌台</a>
     </nav>
     <div class="mode-switch" role="group" aria-label="分析模式">
       <button class="mode-btn active" id="mode-local" title="无需联网，本地规则引擎完成全部分析">本地规则</button>
       <button class="mode-btn" id="mode-ai" title="AI 增强模式（需接入接口，未接入时自动回落本地规则）">AI 增强</button>
+    </div>
+    <div class="bgm-ctrl">
+      <button class="bgm-btn" id="btn-bgm" title="播放背景音乐（随机）" aria-label="播放 / 暂停背景音乐">
+        <span class="bgm-icon" aria-hidden="true">♪</span>
+        <span class="bgm-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      </button>
+      <div class="bgm-now" id="bgm-now" hidden></div>
     </div>
   </div>
 </header>
@@ -417,6 +425,38 @@
     <div class="compose-stage" id="compose-stage"></div>
   </div>
 </section>
+
+<!-- ══════════ 页面：点歌台 ══════════ -->
+<section id="page-jukebox" class="page">
+  <div class="page-head">
+    <h1>点歌台</h1>
+    <p>为诗境配一曲清音。搜索歌名 / 歌手名点歌，或随机聆听，曲终自动接下一首。</p>
+  </div>
+  <div class="jukebox">
+    <div class="jukebox-player">
+      <div class="jb-cover" id="jb-cover" aria-hidden="true">♪</div>
+      <div class="jb-meta">
+        <div class="jb-title" id="jb-title">未在播放</div>
+        <div class="jb-artist" id="jb-artist">点一首歌，或让诗镜随机为你选曲</div>
+        <div class="jb-progress" id="jb-progress" title="点击跳转进度">
+          <div class="jb-track"><div class="jb-bar" id="jb-bar"></div></div>
+          <div class="jb-time" id="jb-time">0:00 / 0:00</div>
+        </div>
+      </div>
+      <div class="jb-controls">
+        <button class="btn ghost" id="jb-prev" title="上一首">⏮ 上一首</button>
+        <button class="btn primary" id="jb-toggle">▶ 播放</button>
+        <button class="btn ghost" id="jb-next" title="下一首">下一首 ⏭</button>
+        <button class="btn ghost" id="jb-random" title="随机播放">🎲 随机播放</button>
+      </div>
+    </div>
+    <div class="jukebox-search">
+      <input id="jb-search" type="search" placeholder="搜索歌名 / 歌手名…" aria-label="搜索歌曲">
+      <span class="jb-count" id="jb-count"></span>
+    </div>
+    <div class="jukebox-list" id="jb-list"></div>
+  </div>
+</section>
 </main>
 
 <!-- ══════════ 页脚 ══════════ -->
@@ -456,7 +496,7 @@
       <img class="wechat-logo" src="images/logo-sm.png" alt="秋轩无墨 Logo" width="26" height="26">
       <button type="button" class="wechat-entry" id="btn-wechat" aria-haspopup="dialog">关注公众号</button>
     </div>
-    <div class="footer-brand">诗镜 · Poetry Lens — 诗歌属于人民，诗歌为人民服务</div>
+    <div class="footer-brand">诗镜 · Poetry Lens — 纯前端离线运行 · 本地规则引擎</div>
   </div>
 </footer>
 
@@ -485,6 +525,7 @@
 <script src="data-cipai.js"></script>
 <script src="data-poets.js"></script>
 <script src="data-ai.js"></script>
+<script src="data-music.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
