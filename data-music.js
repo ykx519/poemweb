@@ -7,6 +7,18 @@ const MUSIC = [
     "tag": ""
   },
   {
+    "title": "一见如故",
+    "artist": "许嵩",
+    "src": "Music/一见如故+许嵩.mp3",
+    "tag": ""
+  },
+  {
+    "title": "中国军魂",
+    "artist": "亮剑",
+    "src": "Music/中国军魂+亮剑.mp3",
+    "tag": ""
+  },
+  {
     "title": "人民之歌",
     "artist": "悲惨世界",
     "src": "Music/人民之歌+悲惨世界.mp3",
@@ -19,9 +31,21 @@ const MUSIC = [
     "tag": ""
   },
   {
+    "title": "出雨林记",
+    "artist": "许嵩",
+    "src": "Music/出雨林记+许嵩.mp3",
+    "tag": ""
+  },
+  {
     "title": "初心",
     "artist": "潘辰",
     "src": "Music/初心+潘辰.mp3",
+    "tag": ""
+  },
+  {
+    "title": "前程似锦",
+    "artist": "许嵩",
+    "src": "Music/前程似锦+许嵩.mp3",
     "tag": ""
   },
   {
@@ -43,15 +67,51 @@ const MUSIC = [
     "tag": ""
   },
   {
+    "title": "心安之地",
+    "artist": "许嵩",
+    "src": "Music/心安之地+许嵩.mp3",
+    "tag": ""
+  },
+  {
+    "title": "忽略不计",
+    "artist": "许嵩",
+    "src": "Music/忽略不计+许嵩.mp3",
+    "tag": ""
+  },
+  {
     "title": "桃花树下桃花仙",
     "artist": "妖扬",
     "src": "Music/桃花树下桃花仙+妖扬.mp3",
     "tag": ""
   },
   {
+    "title": "洛阳纸",
+    "artist": "许嵩",
+    "src": "Music/洛阳纸+许嵩.mp3",
+    "tag": ""
+  },
+  {
     "title": "犹记",
     "artist": "陈鸿宇",
     "src": "Music/犹记+陈鸿宇.mp3",
+    "tag": ""
+  },
+  {
+    "title": "皮下",
+    "artist": "许嵩",
+    "src": "Music/皮下+许嵩.mp3",
+    "tag": ""
+  },
+  {
+    "title": "粗糙",
+    "artist": "许嵩",
+    "src": "Music/粗糙+许嵩.mp3",
+    "tag": ""
+  },
+  {
+    "title": "老歌",
+    "artist": "许嵩",
+    "src": "Music/老歌+许嵩.mp3",
     "tag": ""
   },
   {
